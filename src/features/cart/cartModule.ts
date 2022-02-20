@@ -1,6 +1,6 @@
 export {};
 
-interface cartItem {
+interface CartItem {
   id: number;
   title: string;
   price: number;
@@ -13,6 +13,11 @@ interface DiscountCode {
   type: "cart" | "item";
   value: number;
   itemId?: number;
+}
+
+interface Cart {
+  items: CartItem[];
+  discount: string[];
 }
 
 const discountCodes: Array<DiscountCode> = [
@@ -34,15 +39,23 @@ const discountCodes: Array<DiscountCode> = [
   },
 ];
 
-const cart: Array<cartItem> = [];
-const cartDiscount: string[] = [];
+const cart: Cart = {
+  items: [],
+  discount: []
+};
 
-const addItem = (product: cartItem): void => {
-  cart.push(product);
-  console.log(
-    "New Product Added",
-    cart.find((item) => item.id === product.id)
-  );
+const addItem = (product: CartItem): void => {
+  const isExist = cart.items.find(item => item.id === product.id);
+  if(isExist){
+    isExist.quantity++;
+    console.log("Quantity increamented for this product", isExist);
+  } else {
+    cart.items.push(product);
+    console.log(
+      "New Product Added",
+      cart.items.find((item) => item.id === product.id)
+    );
+  }
 };
 
 addItem({
@@ -81,43 +94,19 @@ addItem({
   discountApplied: [],
 });
 
-const increamentQuantity = (id: number): void => {
-  const selectProduct = cart.find((item) => item.id === id);
-  if (selectProduct) {
-    selectProduct.quantity++;
-    console.log("Quantity increamented for this product", selectProduct);
-  } else {
-    console.log("Item not found in cart");
-  }
-};
 
-increamentQuantity(5);
-
-const decreamentQuantity = (id: number): void => {
-  const selectProduct = cart.find((item) => item.id === id);
-  if (selectProduct) {
-    if (selectProduct.quantity > 1) {
-      selectProduct.quantity--;
-      console.log("Quantity decreamented for this product", selectProduct);
-    } else {
-      console.log(
-        "This item has minimum quantity of 1, it can't be decreamented",
-        selectProduct
-      );
-    }
-  } else {
-    console.log("item not found in cart.");
-  }
-};
-
-decreamentQuantity(1);
 
 const removeItem = (id: number): void => {
-  cart[cart.findIndex((item) => item.id === id)].quantity = 0;
-  console.log(
-    "item removed from CartStore",
-    cart[cart.findIndex((item) => item.id === id)]
-  );
+  const isExist = cart.items.find(item => item.id === id && item.quantity >= 1)
+  if(isExist) {
+    isExist.quantity = 0;
+    console.log(
+      "item removed from CartStore",
+      isExist
+    );
+  } else {
+    console.log("item does not available in cart")
+  }
 };
 removeItem(1);
 
@@ -128,17 +117,17 @@ const addDiscount = (discountCode: string): void => {
   if (checkCode) {
     if (checkCode.type === "cart") {
       // check if this code is applied before
-      const isApplied = cartDiscount.includes(checkCode.code);
+      const isApplied = cart.discount.includes(checkCode.code);
       if (!isApplied) {
-        cartDiscount.push(checkCode.code);
-        console.log("discount added to whole cart", cartDiscount);
+        cart.discount.push(checkCode.code);
+        console.log("discount added to whole cart", cart.discount);
       } else {
         console.log("This Code is applied already!");
         return;
       }
     } else {
       const product =
-        cart[cart.findIndex((item) => item.id === checkCode.itemId)];
+        cart.items[cart.items.findIndex((item) => item.id === checkCode.itemId)];
       // check if already applied this code before
       const isApplied = product.discountApplied.includes(checkCode.code);
       if (!isApplied) {
@@ -158,7 +147,7 @@ addDiscount("halfDiscount");
 
 // get total price of a single item
 
-const getCartItemPrice = (item: cartItem): number => {
+const getCartItemPrice = (item: CartItem): number => {
   const codeApplied = item.discountApplied.length > 0;
   let totalPrice = 0;
   if (codeApplied) {
@@ -179,28 +168,28 @@ const getCartItemPrice = (item: cartItem): number => {
   return totalPrice;
 };
 
-console.log(getCartItemPrice(cart[2]));
+console.log(getCartItemPrice(cart.items[2]));
 
 // get total price of product store
 
 const getTotalPrice = (): number => {
-  const codeApplied = cartDiscount.length > 0;
+  const codeApplied = cart.discount.length > 0;
   console.log(codeApplied);
   let totalPrice = 0;
   if (codeApplied) {
     const codeValue = discountCodes.filter((code) =>
-      cartDiscount.includes(code.code)
+      cart.discount.includes(code.code)
     );
     const totalDiscount = codeValue.reduce(
       (total, item) => total + item.value,
       0
     );
     totalPrice =
-      (cart.reduce((total, item) => total + item.quantity * item.price, 0) *
+      (cart.items.reduce((total, item) => total + item.quantity * item.price, 0) *
         totalDiscount) /
       100;
   } else {
-    totalPrice = cart.reduce(
+    totalPrice = cart.items.reduce(
       (total, item) => total + item.quantity * item.price,
       0
     );
@@ -212,8 +201,8 @@ console.log(getTotalPrice());
 
 // show all cart items
 
-const getCartItems = (): cartItem[] => {
-  return cart.filter((product) => product.quantity >= 1);
+const getCartItems = (): CartItem[] => {
+  return cart.items.filter((product) => product.quantity >= 1);
 };
 
 console.log(getCartItems());
