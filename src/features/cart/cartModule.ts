@@ -1,4 +1,3 @@
-export {};
 
 interface CartItem {
   id: number;
@@ -23,19 +22,19 @@ interface Cart {
 const discountCodes: Array<DiscountCode> = [
   {
     code: "halfDiscount",
-    value: 50,
     type: "cart",
+    value: 50
   },
   {
     code: "fullDiscount",
-    value: 100,
     type: "cart",
+    value: 100
   },
   {
     code: "tfiveDiscount",
-    value: 25,
     type: "item",
-    itemId: 3,
+    value: 25,
+    itemId: 3
   },
 ];
 
@@ -58,57 +57,23 @@ const addItem = (product: CartItem): void => {
   }
 };
 
-addItem({
-  id: 1,
-  title: "Item 1",
-  price: 120,
-  quantity: 1,
-  discountApplied: [],
-});
-addItem({
-  id: 2,
-  title: "Item 2",
-  price: 120,
-  quantity: 1,
-  discountApplied: [],
-});
-addItem({
-  id: 3,
-  title: "Item 3",
-  price: 120,
-  quantity: 1,
-  discountApplied: [],
-});
-addItem({
-  id: 4,
-  title: "Item 4",
-  price: 120,
-  quantity: 1,
-  discountApplied: [],
-});
-addItem({
-  id: 5,
-  title: "Item 5",
-  price: 120,
-  quantity: 0,
-  discountApplied: [],
-});
-
-
 
 const removeItem = (id: number): void => {
   const isExist = cart.items.find(item => item.id === id && item.quantity >= 1)
-  if(isExist) {
-    isExist.quantity = 0;
+
+  if(isExist.quantity > 1) {
+    isExist.quantity--;
     console.log(
-      "item removed from CartStore",
+      "item quantity decreased !",
       isExist
-    );
-  } else {
+      );
+    } else if (isExist.quantity === 1) {
+    cart.items = cart.items.filter(item => item.id !== isExist.id)
+    console.log("Item removed from cart!")
+  }  else {
     console.log("item does not available in cart")
   }
 };
-removeItem(1);
 
 // fucntion for applying discount codes
 
@@ -143,8 +108,6 @@ const addDiscount = (discountCode: string): void => {
   }
 };
 
-addDiscount("halfDiscount");
-
 // get total price of a single item
 
 const getCartItemPrice = (item: CartItem): number => {
@@ -161,20 +124,30 @@ const getCartItemPrice = (item: CartItem): number => {
       0
     );
     console.log(totalDiscount);
-    totalPrice = (item.price * item.quantity * totalDiscount) / 100;
+    totalPrice =(item.price * item.quantity) - ((item.price * item.quantity * totalDiscount) / 100);
   } else {
     totalPrice = item.quantity * item.price;
   }
   return totalPrice;
 };
 
-console.log(getCartItemPrice(cart.items[2]));
 
 // get total price of product store
 
 const getTotalPrice = (): number => {
+  // check if any item has discounted price 
+  const haveDiscount = cart.items.filter(item => item.discountApplied.length > 0);
+  let totalDiscountedItemPrice : number = 0;
+  if(haveDiscount){
+    const discountedItemPrice : number[] = [];
+    // get discounted price of these items 
+    haveDiscount.forEach(item => {
+     const price =  getCartItemPrice(item);
+     discountedItemPrice.push(price)
+    })
+    totalDiscountedItemPrice = discountedItemPrice.reduce((total, item) => total + item, 0)
+  }
   const codeApplied = cart.discount.length > 0;
-  console.log(codeApplied);
   let totalPrice = 0;
   if (codeApplied) {
     const codeValue = discountCodes.filter((code) =>
@@ -184,20 +157,31 @@ const getTotalPrice = (): number => {
       (total, item) => total + item.value,
       0
     );
-    totalPrice =
-      (cart.items.reduce((total, item) => total + item.quantity * item.price, 0) *
-        totalDiscount) /
-      100;
+    const cartPrice = cart.items.reduce((total, item) => {
+      if(item.discountApplied.length === 0){
+        return total + item.quantity * item.price
+      } else {
+        return total
+      }
+    }, 0);
+    const finalPrice = cartPrice + totalDiscountedItemPrice;
+
+    totalPrice = finalPrice - (finalPrice * totalDiscount / 100);
   } else {
-    totalPrice = cart.items.reduce(
-      (total, item) => total + item.quantity * item.price,
-      0
-    );
+    const cartPrice = cart.items.reduce((total, item) => {
+      if(item.discountApplied.length === 0){
+        return total + item.quantity * item.price
+      } else {
+        return total
+      }
+    }, 0);
+    totalPrice = cartPrice + totalDiscountedItemPrice;
+    
   }
   return totalPrice;
 };
 
-console.log(getTotalPrice());
+
 
 // show all cart items
 
@@ -205,4 +189,5 @@ const getCartItems = (): CartItem[] => {
   return cart.items.filter((product) => product.quantity >= 1);
 };
 
-console.log(getCartItems());
+
+export { addItem, removeItem, addDiscount, getCartItemPrice, getTotalPrice, getCartItems, cart, discountCodes };
